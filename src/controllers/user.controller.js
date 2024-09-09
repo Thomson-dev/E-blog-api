@@ -3,77 +3,70 @@ import bcryptjs from 'bcryptjs';
 import { errorHandler } from '../utils/error.js';
 
 
-// Export the updateUser function so it can be used in other files
 export const updateUser = async (req, res, next) => {
-  // console.log(req.user.id); 
-  
   // Check if the user ID from the request matches the user ID in the URL parameters
   if (req.user.id !== req.params.userId) {
-    // If the IDs do not match, call the errorHandler with a 403 status code and an error message
     return next(errorHandler(403, 'You are not allowed to update this user'));
   }
 
   // Check if the request body contains a password
   if (req.body.password) {
-    // If the password is less than 6 characters, call the errorHandler with a 400 status code and an error message
     if (req.body.password.length < 6) {
       return next(errorHandler(400, 'Password must be at least 6 characters'));
     }
-    // Hash the password using bcryptjs with a salt rounds value of 10
     req.body.password = bcryptjs.hashSync(req.body.password, 10);
   }
 
   // Check if the request body contains a username
   if (req.body.username) {
-    // If the username is less than 7 or more than 20 characters, call the errorHandler with a 400 status code and an error message
     if (req.body.username.length < 7 || req.body.username.length > 20) {
-      return next(
-        errorHandler(400, 'Username must be between 7 and 20 characters')
-      );
+      return next(errorHandler(400, 'Username must be between 7 and 20 characters'));
     }
-    // If the username contains spaces, call the errorHandler with a 400 status code and an error message
     if (req.body.username.includes(' ')) {
       return next(errorHandler(400, 'Username cannot contain spaces'));
     }
-    // If the username is not lowercase, call the errorHandler with a 400 status code and an error message
     if (req.body.username !== req.body.username.toLowerCase()) {
-      
       return next(errorHandler(400, 'Username must be lowercase'));
     }
-    // If the username contains characters other than letters and numbers, call the errorHandler with a 400 status code and an error message
     if (!req.body.username.match(/^[a-zA-Z0-9]+$/)) {
-      return next(
-        errorHandler(400, 'Username can only contain letters and numbers')
-      );
+      return next(errorHandler(400, 'Username can only contain letters and numbers'));
     }
   }
 
   try {
-    // Find the user by ID and update the user details
+    // Find the user by ID to retain the token
+    const user = await User.findById(req.params.userId);
+    if (!user) {
+      return next(errorHandler(404, 'User not found'));
+    }
+
+    // Preserve the token if it exists
+    const existingToken = user.token;
+
+    // Update the user details
     const updatedUser = await User.findByIdAndUpdate(
       req.params.userId,
       {
         $set: {
-          username: req.body.username,
-          email: req.body.email,
-          profilePicture: req.body.profilePicture,
-          password: req.body.password,
+          username: req.body.username || user.username,
+          email: req.body.email || user.email,
+          profilePicture: req.body.profilePicture || user.profilePicture,
+          password: req.body.password || user.password,
         },
       },
-      { new: true } // Return the updated document
-      
+      { new: true }
     );
 
     // Destructure the password out of the updated user object to exclude it from the response
-    const { password, token, ...rest } = updatedUser._doc;
+    const { password, ...rest } = updatedUser._doc;
 
-    // Send a response with the updated user details (excluding password)
-    res.status(200).json({...rest, token});
+    // Send the updated user details, including the token
+    res.status(200).json({ ...rest, token: existingToken });
   } catch (error) {
-    // If an error occurs, pass the error to the next middleware
     next(error);
   }
 };
+
 
 export const deleteUser = async (req, res, next) => {
   
