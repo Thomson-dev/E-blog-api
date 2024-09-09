@@ -18,7 +18,7 @@ app.use(express.json());
 
 // CORS configuration options
 const corsOptions = {
-  origin: 'https://eblog-three.vercel.app', // Replace with your allowed origin(s)
+  origin: ['https://eblog-three.vercel.app', 'http://localhost:3000'], // Allow multiple origins
   methods: 'GET,HEAD,PUT,PATCH,POST,DELETE',
   credentials: true, // Allow cookies to be sent with requests
   optionsSuccessStatus: 204 // Some legacy browsers (IE11, various SmartTVs) choke on 204
