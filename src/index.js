@@ -1,33 +1,44 @@
 import express from "express";
 import authRoutes from "./routes/auth.routes.js";
 import userRoutes from './routes/user.routes.js';
-
-
 import dotenv from "dotenv";
 import connectDB from "./config/db.js";
-import cookieParser from 'cookie-parser';
 import cors from "cors";
+
+// Load environment variables from .env file
 dotenv.config();
 
+// Connect to the database
 connectDB();
 
 const app = express();
 
+// Middleware to parse JSON requests
 app.use(express.json());
 
-app.use(cors())
+// CORS configuration options
+const corsOptions = {
+  origin: 'https://e-blog-api.onrender.com', // Replace with your allowed origin(s)
+  methods: 'GET,HEAD,PUT,PATCH,POST,DELETE',
+  credentials: true, // Allow cookies to be sent with requests
+  optionsSuccessStatus: 204 // Some legacy browsers (IE11, various SmartTVs) choke on 204
+};
 
+// Enable CORS with the specified options
+app.use(cors(corsOptions));
 
-
+// Define routes
 app.use('/api/user', userRoutes);
 app.use("/api/auth", authRoutes);
 
+// Root route
 app.get("/", (req, res) => {
   res.send("Hello world");
 });
 
+// Start the server
 app.listen(8000, () => {
-  console.log("server listening on port 8000");
+  console.log("Server listening on port 8000");
 });
 
 // Error-handling middleware function
