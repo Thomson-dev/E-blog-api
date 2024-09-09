@@ -65,10 +65,10 @@ export const updateUser = async (req, res, next) => {
     );
 
     // Destructure the password out of the updated user object to exclude it from the response
-    const { password, ...rest } = updatedUser._doc;
+    const { password, token, ...rest } = updatedUser._doc;
 
     // Send a response with the updated user details (excluding password)
-    res.status(200).json(rest);
+    res.status(200).json({...rest, token});
   } catch (error) {
     // If an error occurs, pass the error to the next middleware
     next(error);
