@@ -1,6 +1,7 @@
 import User from "../models/user.model.js";
 import bcryptjs from "bcryptjs";
 import { errorHandler } from "../utils/error.js";
+import jwt from "jsonwebtoken";
 
 export const updateUser = async (req, res, next) => {
   // Check if the user ID from the request matches the user ID in the URL parameters
