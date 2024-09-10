@@ -3,13 +3,18 @@ import bcryptjs from 'bcryptjs';
 import { errorHandler } from '../utils/error.js';
 
 
+
+
+import User from '../models/user.model.js';
+import bcryptjs from 'bcryptjs';
+import jwt from 'jsonwebtoken';
+import { errorHandler } from '../utils/error.js';
+
 export const updateUser = async (req, res, next) => {
-  // Check if the user ID from the request matches the user ID in the URL parameters
   if (req.user.id !== req.params.userId) {
     return next(errorHandler(403, 'You are not allowed to update this user'));
   }
 
-  // Check if the request body contains a password
   if (req.body.password) {
     if (req.body.password.length < 6) {
       return next(errorHandler(400, 'Password must be at least 6 characters'));
@@ -17,7 +22,6 @@ export const updateUser = async (req, res, next) => {
     req.body.password = bcryptjs.hashSync(req.body.password, 10);
   }
 
-  // Check if the request body contains a username
   if (req.body.username) {
     if (req.body.username.length < 7 || req.body.username.length > 20) {
       return next(errorHandler(400, 'Username must be between 7 and 20 characters'));
@@ -34,16 +38,7 @@ export const updateUser = async (req, res, next) => {
   }
 
   try {
-    // Find the user by ID to retain the token
-    const user = await User.findById(req.params.userId);
-    if (!user) {
-      return next(errorHandler(404, 'User not found'));
-    }
-
-    // Preserve the token if it exists
-    const existingToken = user.token;
-
-    // Update the user details
+    // Update the user details in the database
     const updatedUser = await User.findByIdAndUpdate(
       req.params.userId,
       {
@@ -57,15 +52,30 @@ export const updateUser = async (req, res, next) => {
       { new: true }
     );
 
+    if (!updatedUser) {
+      return next(errorHandler(404, 'User not found'));
+    }
+
+    // Generate a new token after updating the user
+    const token = jwt.sign(
+      {
+        id: updatedUser._id,
+        isAdmin: updatedUser.isAdmin,
+      },
+      process.env.JWT_SECRET, // Make sure to replace this with your secret key
+      { expiresIn: '1h' }
+    );
+
     // Destructure the password out of the updated user object to exclude it from the response
     const { password, ...rest } = updatedUser._doc;
 
-    // Send the updated user details, including the token
-    res.status(200).json({ ...rest, token: existingToken });
+    // Return the updated user details along with the new token
+    res.status(200).json({ ...rest, token });
   } catch (error) {
     next(error);
   }
 };
+
 
 
 export const deleteUser = async (req, res, next) => {
