@@ -1,6 +1,8 @@
 import express from "express";
 import authRoutes from "./routes/auth.routes.js";
-import userRoutes from './routes/user.routes.js';
+import userRoutes from "./routes/user.routes.js";
+import postRoutes from "./routes/post.routes.js";
+import commentRoutes from "./routes/comment.route.js";
 import dotenv from "dotenv";
 import connectDB from "./config/db.js";
 import cors from "cors";
@@ -18,18 +20,20 @@ app.use(express.json());
 
 // CORS configuration options
 const corsOptions = {
-  origin: ['https://eblog-three.vercel.app', 'http://localhost:3000'], // Allow multiple origins
-  methods: 'GET,HEAD,PUT,PATCH,POST,DELETE',
+  origin: ["https://eblog-three.vercel.app", "http://localhost:3000"], // Allow multiple origins
+  methods: "GET,HEAD,PUT,PATCH,POST,DELETE",
   credentials: true, // Allow cookies to be sent with requests
-  optionsSuccessStatus: 204 // Some legacy browsers (IE11, various SmartTVs) choke on 204
+  optionsSuccessStatus: 204, // Some legacy browsers (IE11, various SmartTVs) choke on 204
 };
 
 // Enable CORS with the specified options
 app.use(cors(corsOptions));
 
 // Define routes
-app.use('/api/user', userRoutes);
+app.use("/api/user", userRoutes);
 app.use("/api/auth", authRoutes);
+app.use("/api/post", postRoutes);
+app.use('/api/comment', commentRoutes);
 
 // Root route
 app.get("/", (req, res) => {

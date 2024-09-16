@@ -51,8 +51,8 @@ export const signin = async (req, res, next) => {
   // Check if email or password is missing or empty
   if (!email || !password || email === "" || password === "") {
    
-    next(errorHandler(400, "All fields are required"));
-    return; 
+     return  next(errorHandler(400, "All fields are required"));
+           
   }
 
   try {
@@ -123,6 +123,7 @@ export const google = async (req, res, next) => {
       });
     
       await newUser.save();
+
       // Generate a JWT token with the new user's ID and isAdmin status
       const token = jwt.sign(
         { id: user._id, isAdmin: user.isAdmin },
