@@ -27,7 +27,7 @@ export const create = async (req, res, next) => {
     const savedPost = await newPost.save();
     // Update the cache
     const redisClient = await getConnectedClient();
-    redisClient.setex(`post:${savedPost._id}`, 3600, JSON.stringify(savedPost));
+    redisClient.set(`post:${savedPost._id}`, 3600, JSON.stringify(savedPost));
 
     res.status(201).json(savedPost);
   } catch (error) {
@@ -139,7 +139,7 @@ export const updatepost = async (req, res, next) => {
     if (updatedPost) {
       // Update the cache
       const redisClient = await getConnectedClient();
-      redisClient.setex(`post:${req.params.postId}`, 3600, JSON.stringify(updatedPost));
+      redisClient.set(`post:${req.params.postId}`, 3600, JSON.stringify(updatedPost));
     }
 
     res.status(200).json(updatedPost);
