@@ -25,6 +25,10 @@ export const create = async (req, res, next) => {
 
   try {
     const savedPost = await newPost.save();
+    // Update the cache
+    const redisClient = await getConnectedClient();
+    redisClient.setex(`post:${savedPost._id}`, 3600, JSON.stringify(savedPost));
+
     res.status(201).json(savedPost);
   } catch (error) {
     next(error);
@@ -131,6 +135,13 @@ export const updatepost = async (req, res, next) => {
       },
       { new: true }
     );
+
+    if (updatedPost) {
+      // Update the cache
+      const redisClient = await getConnectedClient();
+      redisClient.setex(`post:${req.params.postId}`, 3600, JSON.stringify(updatedPost));
+    }
+
     res.status(200).json(updatedPost);
   } catch (error) {
     next(error);
@@ -142,7 +153,14 @@ export const deletepost = async (req, res, next) => {
     return next(errorHandler(403, 'You are not allowed to delete this post'));
   }
   try {
-    await Post.findByIdAndDelete(req.params.postId);
+    const deletedPost = await Post.findByIdAndDelete(req.params.postId);
+
+    if (deletedPost) {
+      // Invalidate the cache
+      const redisClient = await getConnectedClient();
+      redisClient.del(`post:${req.params.postId}`);
+    }
+
     res.status(200).json('The post has been deleted');
   } catch (error) {
     next(error);
