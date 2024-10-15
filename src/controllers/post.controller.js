@@ -1,9 +1,7 @@
 import Post from "../models/post.model.js";
 import { errorHandler } from "../utils/error.js";
 
-
-import { getConnectedClient } from '../config/redisClient.js';
-
+import { getConnectedClient } from "../config/redisClient.js";
 
 export const create = async (req, res, next) => {
   if (!req.user.isAdmin) {
@@ -27,7 +25,12 @@ export const create = async (req, res, next) => {
     const savedPost = await newPost.save();
     // Update the cache
     const redisClient = await getConnectedClient();
-    redisClient.set(`post:${savedPost._id}`, JSON.stringify(savedPost), 'EX', 3600); // Correct syn
+    redisClient.set(
+      `post:${savedPost._id}`,
+      JSON.stringify(savedPost),
+      "EX",
+      3600
+    ); // Correct syn
 
     res.status(201).json(savedPost);
   } catch (error) {
@@ -35,21 +38,20 @@ export const create = async (req, res, next) => {
   }
 };
 
-
- // Adjust the import path as needed
+// Adjust the import path as needed
 
 export const getposts = async (req, res, next) => {
-  const cacheKey = 'posts:all';
+  const cacheKey = "posts:all";
 
   try {
     const redisClient = await getConnectedClient();
-    
+
     // Try to get data from cache
     const cachedData = await redisClient.get(cacheKey);
-    
+
     if (cachedData) {
-      console.log('Data from cache');
-      return res.status(200).json(JSON.parse(cachedData)); 
+      console.log("Data from cache");
+      return res.status(200).json(JSON.parse(cachedData));
     }
 
     // If not in cache, fetch from database
@@ -74,9 +76,7 @@ export const getposts = async (req, res, next) => {
     };
 
     // Cache the response
-    await redisClient.set(cacheKey, JSON.stringify(response), {
-      EX: 3600 // Set expiration to 1 hour
-    });
+    await redisClient.set(cacheKey, JSON.stringify(response), "EX", 3600); // Correct syntax
 
     res.status(200).json(response);
   } catch (error) {
@@ -90,23 +90,20 @@ export const getpost = async (req, res, next) => {
 
   try {
     const redisClient = await getConnectedClient();
-    
+
     // Try to get data from cache
     const cachedData = await redisClient.get(cacheKey);
-    
+
     if (cachedData) {
-    
       return res.status(200).json(JSON.parse(cachedData));
     }
 
     // If not in cache, fetch from database
     const post = await Post.findById(id);
-    
+
     if (post) {
       // Cache the post data
-      await redisClient.set(cacheKey, JSON.stringify(post), {
-        EX: 3600 // Set expiration to 1 hour
-      });
+      await redisClient.set(cacheKey, JSON.stringify(post), "EX", 3600);
       res.status(200).json(post);
     } else {
       throw errorHandler(404, "Post not found");
@@ -116,11 +113,10 @@ export const getpost = async (req, res, next) => {
   }
 };
 
-
 export const updatepost = async (req, res, next) => {
-  if (!req.user.isAdmin ) {
+  if (!req.user.isAdmin) {
     console.log(req.user.isAdmin);
-    return next(errorHandler(403, 'You are not allowed to update this post'));
+    return next(errorHandler(403, "You are not allowed to update this post"));
   }
   try {
     const updatedPost = await Post.findByIdAndUpdate(
@@ -139,7 +135,12 @@ export const updatepost = async (req, res, next) => {
     if (updatedPost) {
       // Update the cache
       const redisClient = await getConnectedClient();
-      redisClient.set(`post:${req.params.postId}`, JSON.stringify(updatedPost), 'EX', 3600);
+      redisClient.set(
+        `post:${req.params.postId}`,
+        JSON.stringify(updatedPost),
+        "EX",
+        3600
+      );
     }
 
     res.status(200).json(updatedPost);
@@ -150,7 +151,7 @@ export const updatepost = async (req, res, next) => {
 
 export const deletepost = async (req, res, next) => {
   if (!req.user.isAdmin) {
-    return next(errorHandler(403, 'You are not allowed to delete this post'));
+    return next(errorHandler(403, "You are not allowed to delete this post"));
   }
   try {
     const deletedPost = await Post.findByIdAndDelete(req.params.postId);
@@ -161,7 +162,7 @@ export const deletepost = async (req, res, next) => {
       redisClient.del(`post:${req.params.postId}`);
     }
 
-    res.status(200).json('The post has been deleted');
+    res.status(200).json("The post has been deleted");
   } catch (error) {
     next(error);
   }
