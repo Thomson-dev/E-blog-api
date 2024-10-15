@@ -1,6 +1,10 @@
 import Post from "../models/post.model.js";
 import { errorHandler } from "../utils/error.js";
 
+
+import { getConnectedClient } from '../config/redisClient.js';
+
+
 export const create = async (req, res, next) => {
   if (!req.user.isAdmin) {
     return next(errorHandler(403, "You are not allowed to create a post"));
@@ -27,39 +31,81 @@ export const create = async (req, res, next) => {
   }
 };
 
-export const getposts = async (req,res,next ) => {
-  const posts = await Post.find({}).sort({ createdAt: -1 });
-  const totalPosts = await Post.countDocuments();
 
-  const now = new Date();
+ // Adjust the import path as needed
 
-  const oneMonthAgo = new Date(
-    now.getFullYear(),
-    now.getMonth() - 1,
-    now.getDate()
-  );
+export const getposts = async (req, res, next) => {
+  const cacheKey = 'posts:all';
 
-  const lastMonthPosts = await Post.countDocuments({
-    createdAt: { $gte: oneMonthAgo },
-  });
   try {
-    res.status(200).json({
+    const redisClient = await getConnectedClient();
+    
+    // Try to get data from cache
+    const cachedData = await redisClient.get(cacheKey);
+    
+    if (cachedData) {
+      console.log('Data from cache');
+      return res.status(200).json(JSON.parse(cachedData)); 
+    }
+
+    // If not in cache, fetch from database
+    const posts = await Post.find({}).sort({ createdAt: -1 });
+    const totalPosts = await Post.countDocuments();
+
+    const now = new Date();
+    const oneMonthAgo = new Date(
+      now.getFullYear(),
+      now.getMonth() - 1,
+      now.getDate()
+    );
+
+    const lastMonthPosts = await Post.countDocuments({
+      createdAt: { $gte: oneMonthAgo },
+    });
+
+    const response = {
       posts,
       totalPosts,
       lastMonthPosts,
+    };
+
+    // Cache the response
+    await redisClient.set(cacheKey, JSON.stringify(response), {
+      EX: 3600 // Set expiration to 1 hour
     });
+
+    res.status(200).json(response);
   } catch (error) {
     next(error);
   }
 };
 
 export const getpost = async (req, res, next) => {
+  const { id } = req.params;
+  const cacheKey = `post:${id}`;
+
   try {
-    const post = await Post.findById(req.params.id);
+    const redisClient = await getConnectedClient();
+    
+    // Try to get data from cache
+    const cachedData = await redisClient.get(cacheKey);
+    
+    if (cachedData) {
+    
+      return res.status(200).json(JSON.parse(cachedData));
+    }
+
+    // If not in cache, fetch from database
+    const post = await Post.findById(id);
+    
     if (post) {
+      // Cache the post data
+      await redisClient.set(cacheKey, JSON.stringify(post), {
+        EX: 3600 // Set expiration to 1 hour
+      });
       res.status(200).json(post);
     } else {
-      return next(errorHandler(404, "Post not found"));
+      throw errorHandler(404, "Post not found");
     }
   } catch (error) {
     next(error);
