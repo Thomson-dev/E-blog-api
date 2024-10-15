@@ -1,7 +1,12 @@
 import { createClient } from 'redis';
 
 const redisClient = createClient({
-  url: 'rediss://red-cs79qtaj1k6c73cm54hg:L3KmfLHa7kKtTmcSuwQdJo3Pu31POLgV@oregon-redis.render.com:6379'  // Replace with your Redis server URL if different
+  url: 'rediss://red-cs79qtaj1k6c73cm54hg:L3KmfLHa7kKtTmcSuwQdJo3Pu31POLgV@oregon-redis.render.com:6379' ,
+  socket: {
+    reconnectStrategy: (retries) => Math.min(retries * 50, 500),
+    connectTimeout: 10000, // 10 seconds
+    keepAlive: 5000, // 5 seconds
+  },
 });
 
 redisClient.on('error', (err) => {
